@@ -1,0 +1,30 @@
+version: '3.9'
+
+services:
+  sqlserverdocker:
+    container_name: sql-server-docker
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    ports:
+      - "8006:1433"
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=3215892540G
+    networks:
+      - mynetworkapi
+
+  apiuser:
+    build:
+      context: .
+      dockerfile: ApiUser/Dockerfile
+    image: apiuser
+    ports:
+      - "5001:8001"
+    networks:
+      - mynetworkapi
+    depends_on:
+      - sqlserverdocker
+    environment:
+      - DB_CONNECTION_STRING=Server=sqlserverdocker;Database=API_USERS;User Id=JuanG;Password=3215892540G;TrustServerCertificate=true
+
+networks:
+  mynetworkapi:
