@@ -1,105 +1,52 @@
 ﻿using Dominio.Entidades;
 using Dominio.Excepciones;
 using Dominio.Puertos.Secundarios;
-using Infrastructura.Repositorios.Custom;  // Agregar el namespace para la clase Utils
-using Microsoft.Data.SqlClient;
-using System.Data;
+using Infrastructura.Repositorios.Custom;
+using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructura.Repositorios
 {
     public class CuentaRepositorio : ICuentaRepositorio
     {
-        private readonly Conexion _conexion;
+        private readonly Context _context;
 
-        public CuentaRepositorio(Conexion conexion)
+        public CuentaRepositorio(Context context)
         {
-            _conexion = conexion;
+            _context = context;
         }
 
-        // Validar credenciales - Consume el procedimiento almacenado sp_ValidarCredenciales
+        // Validar credenciales sin SP
         public async Task<Cuenta?> ValidarCredenciales(Cuenta cuenta)
         {
-            using (var con = _conexion.GetConnection())  // Obtén la conexión
-            {
-                await con.OpenAsync();
+            string contraseñaCifrada = Utils.EncryptSHA256(cuenta.Contraseña);
 
-                // Configurando el comando para ejecutar el SP
-                using (var cmd = new SqlCommand("sp_ValidarCredenciales", con))
+            return await _context.Set<Cuenta>()
+                .Where(c => c.Correo == cuenta.Correo && c.Contraseña == contraseñaCifrada)
+                .Select(c => new Cuenta
                 {
-                    cmd.CommandType = CommandType.StoredProcedure;
-
-                    // Cifrar la contraseña antes de enviarla
-                    string contraseñaCifrada = Utils.EncryptSHA256(cuenta.Contraseña);
-
-                    // Agregar los parámetros al procedimiento almacenado
-                    cmd.Parameters.AddWithValue("@Correo", cuenta.Correo);
-                    cmd.Parameters.AddWithValue("@Contraseña", contraseñaCifrada);
-
-                    // Ejecutar el procedimiento almacenado y leer el resultado
-                    using (var reader = await cmd.ExecuteReaderAsync())
-                    {
-                        if (await reader.ReadAsync())  // Si se encuentran credenciales válidas
-                        {
-                            // Retornar la cuenta con los datos que devuelve el SP
-                            return new Cuenta
-                            {
-                                IdCuenta = Convert.ToInt32(reader["IdCuenta"]),
-                                Correo = reader["Correo"].ToString(),
-                                Rol = reader["Rol"].ToString()
-                            };
-                        }
-                        else
-                        {
-                            // Si las credenciales son incorrectas, retorna null
-                            return null;
-                        }
-                    }
-                }
-            }
+                    IdCuenta = c.IdCuenta,
+                    Correo = c.Correo,
+                    Rol = c.Rol
+                })
+                .FirstOrDefaultAsync();
         }
 
-        // Registro de cuenta - Consume el procedimiento almacenado sp_Register
+        // Registro de cuenta sin SP
         public async Task Register(Cuenta cuenta)
         {
-            try
+            string contraseñaCifrada = Utils.EncryptSHA256(cuenta.Contraseña);
+
+            bool existeCorreo = await _context.Set<Cuenta>().AnyAsync(c => c.Correo == cuenta.Correo);
+
+            if (existeCorreo)
             {
-                using (var con = _conexion.GetConnection())  // Obtén la conexión
-                {
-                    await con.OpenAsync();
-
-                    // Configurando el comando para ejecutar el SP
-                    using (var cmd = new SqlCommand("sp_Register", con))
-                    {
-                        cmd.CommandType = CommandType.StoredProcedure;
-
-                        // Cifrar la contraseña antes de enviarla
-                        string contraseñaCifrada = Utils.EncryptSHA256(cuenta.Contraseña);
-
-                        // Agregar los parámetros al procedimiento almacenado
-                        cmd.Parameters.AddWithValue("@Correo", cuenta.Correo);
-                        cmd.Parameters.AddWithValue("@Contraseña", contraseñaCifrada);  // Usar contraseña cifrada
-                        cmd.Parameters.AddWithValue("@Rol", cuenta.Rol);
-
-                        // Ejecutar el procedimiento almacenado
-                        await cmd.ExecuteNonQueryAsync();  // Ejecutar el procedimiento sin necesidad de leer resultados
-
-                    }
-                }
-            }
-            catch (SqlException ex)
-            {
-
-                if (ex.Number == 2627) // 2627 es el código de error para violación de clave única en SQL Server
-                {
-                    throw new CuentaDuplicadaException(); // Lanzamos una excepción personalizada
-                }
-
-                // Si no es un error de duplicado, lanzamos una excepción genérica
-                Console.WriteLine(ex.Message);
-
-                throw new Exception("Error al agregar usuario en la base de datos"+ex.Message, ex);
+                throw new CuentaDuplicadaException(); // correo ya está registrado
             }
 
+            cuenta.Contraseña = contraseñaCifrada;
+
+            _context.Set<Cuenta>().Add(cuenta);
+            await _context.SaveChangesAsync();
         }
     }
 }

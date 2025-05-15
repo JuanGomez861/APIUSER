@@ -8,7 +8,7 @@ services:
       - "8006:1433"
     environment:
       - ACCEPT_EULA=Y
-      - MSSQL_SA_PASSWORD=3215892540G
+      - MSSQL_SA_PASSWORD=Mys3cureP@ssw0rd
     networks:
       - mynetworkapi
 
@@ -17,14 +17,14 @@ services:
       context: .
       dockerfile: ApiUser/Dockerfile
     image: apiuser
-    ports:
-      - "5001:8001"
     networks:
       - mynetworkapi
     depends_on:
       - sqlserverdocker
+    ports:
+      - "5001:8001"
     environment:
-      - DB_CONNECTION_STRING=Server=sqlserverdocker;Database=API_USERS;User Id=JuanG;Password=3215892540G;TrustServerCertificate=true
+      - DB_CONNECTION_STRING=Server=sqlserverdocker;Database=API_USERS;User Id=sa;Password=Mys3cureP@ssw0rd;Encrypt=False;TrustServerCertificate=True
 
 networks:
   mynetworkapi:
