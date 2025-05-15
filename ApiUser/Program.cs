@@ -6,6 +6,7 @@ using Dominio.Services;
 using Infrastructura;
 using Infrastructura.Repositorios;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
@@ -18,12 +19,17 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+
 var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING") ??
                                                         builder.Configuration.GetConnectionString("Cadena");
 
+builder.Services.AddDbContext<Context>(options =>
+{
+    options.UseSqlServer(connectionString);
+});
+
 builder.Services.AddSingleton<Utils>();
 
-builder.Services.AddSingleton(new Conexion(connectionString));
 builder.Services.AddTransient<ICommonRepository<Usuario>,UserRepository>();
 builder.Services.AddTransient<ICommonServices<Usuario>,ServiciosUsuario>();
 builder.Services.AddTransient<ICuentaRepositorio, CuentaRepositorio>();
@@ -69,16 +75,23 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.AllowAnyOrigin()   // Permitir cualquier origen
-              .AllowAnyMethod()   // Permitir cualquier método HTTP
-              .AllowAnyHeader()   // Permitir cualquier cabecera
-              .AllowCredentials(); // Permitir credenciales (por ejemplo, cookies)
+        policy.WithOrigins("http://localhost:5173")
+                .AllowAnyMethod()
+                .AllowAnyHeader()
+                .AllowCredentials();
     });
 });
 
 
 
 var app = builder.Build();
+
+using(var scope= app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<Context>();
+    context.Database.Migrate();
+  
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -87,11 +100,14 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseCors();
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+ 
 
 app.Run();

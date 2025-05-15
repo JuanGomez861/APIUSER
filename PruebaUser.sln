@@ -9,7 +9,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Infrastructura", "Infrastru
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ApiUser", "ApiUser\ApiUser.csproj", "{FEC20FA8-B9B1-45C2-AD2B-5D9224EAC09D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Testing", "..\Testing\Testing.csproj", "{DA5CC320-594B-4C8E-BAA0-19FFBDAD86DC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Testing", "..\Testing\Testing.csproj", "{DA5CC320-594B-4C8E-BAA0-19FFBDAD86DC}"
 EndProject
 Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{E4F3246E-1F72-4CC6-AFF0-7B0CD170D691}"
 EndProject

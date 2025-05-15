@@ -7,7 +7,6 @@ WORKDIR /app
 EXPOSE 8080
 EXPOSE 8081
 
-ENV DB_CONNECTION_STRING="Server=sqlserverdocker;Database=API_USERS;User Id=JuanG;Password=3215892540G;TrustServerCertificate=true"
 
 
 # Esta fase se usa para compilar el proyecto de servicio
